@@ -23,17 +23,15 @@ class Extractor:
         self.llm_client = InvoiceExtractorLLM()
         
         # Inicializa Banco de Dados
-        print("🔌 Verificando schema do banco...")
         try:
             Base.metadata.create_all(bind=engine)
         except Exception as e:
-            print(f"⚠️ Atenção: Não foi possível conectar ao banco de dados: {e}")
             print("O pipeline continuará rodando, mas sem salvar no banco.")
             self.db_session = None
             self.invoice_service = None
             return
 
-        # Abre sessão e serviço se conectou
+        # Abre sessão
         self.db_session = SessionLocal()
         self.invoice_service = InvoiceService(self.db_session)
 
@@ -116,6 +114,7 @@ class Extractor:
                 # 4. Salva no Banco via Service (se disponível)
                 if self.invoice_service:
                     self.invoice_service.save_invoice(invoice_obj)
+                    print(f"Nota {filename} salva no banco.")
                 
                 # 5. Marca como concluído
                 self._save_to_history(filename)
