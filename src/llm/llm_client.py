@@ -1,4 +1,3 @@
-import os
 from typing import List
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI

@@ -3,7 +3,9 @@ import fitz
 import json
 import os
 from typing import List, Set
-from src.llm_client import InvoiceExtractorLLM
+from src.llm.llm_client import InvoiceExtractorLLM
+from database.database import SessionLocal, engine, Base
+from src.services.invoice_service import InvoiceService
 
 class Extractor:
 
@@ -19,7 +21,21 @@ class Extractor:
         
         # Inicializa Cliente LLM
         self.llm_client = InvoiceExtractorLLM()
+        
+        # Inicializa Banco de Dados
+        print("🔌 Verificando schema do banco...")
+        try:
+            Base.metadata.create_all(bind=engine)
+        except Exception as e:
+            print(f"⚠️ Atenção: Não foi possível conectar ao banco de dados: {e}")
+            print("O pipeline continuará rodando, mas sem salvar no banco.")
+            self.db_session = None
+            self.invoice_service = None
+            return
 
+        # Abre sessão e serviço se conectou
+        self.db_session = SessionLocal()
+        self.invoice_service = InvoiceService(self.db_session)
 
     def _load_history(self) -> Set[str]:
         if os.path.exists(self.history_file):
@@ -97,10 +113,12 @@ class Extractor:
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write(invoice_obj.model_dump_json(indent=2))
                 
-                # 4. Marca como concluído
+                # 4. Salva no Banco via Service (se disponível)
+                if self.invoice_service:
+                    self.invoice_service.save_invoice(invoice_obj)
+                
+                # 5. Marca como concluído
                 self._save_to_history(filename)
                 
             except Exception as e:
                 print(f"Falha ao processar {filename}: {str(e)}")
-
-
