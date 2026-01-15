@@ -12,7 +12,8 @@ O projeto transforma documentos não estruturados em dados validados (JSON) e os
 *   **Visão Computacional:** Converte páginas em imagens de alta resolução para que a IA "veja" o documento como um humano.
 *   **Extração Semântica:** Usa LLMs para entender e extrair campos específicos (Emissor, Destinatário, Itens, Totais).
 *   **Validação Rigorosa:** Utiliza **Pydantic** para garantir que os dados de saída obedeçam a um contrato de dados estrito.
-*   **Persistência SQL:** Salva os dados automaticamente em um banco de dados PostgreSQL (via Supabase) usando **SQLAlchemy** (ORM).
+*   **Data Lake (Storage):** Salva os arquivos JSON originais (Raw Data) no **AWS S3** para auditoria e reprocessamento.
+*   **Persistência SQL:** Salva os dados estruturados em um banco de dados PostgreSQL (via Supabase) usando **SQLAlchemy** (ORM).
 *   **Processamento Incremental:** Mantém histórico de arquivos pra não reprocessar.
 
 ---
@@ -36,6 +37,7 @@ Para ambientes de **Produção** que lidam com dados reais de terceiros (CPF, CN
 *   **Orquestração & LLM:** LangChain
 *   **Validação de Dados:** Pydantic
 *   **Processamento de PDF:** PyMuPDF (Fitz)
+*   **Storage (Data Lake):** AWS S3 (via Boto3)
 *   **Banco de Dados:** PostgreSQL
 *   **ORM:** SQLAlchemy
 *   **Gerenciador de Pacotes:** uv (mas compatível com pip/poetry)
@@ -48,14 +50,13 @@ Para ambientes de **Produção** que lidam com dados reais de terceiros (CPF, CN
 /
 ├── main.py              # Ponto de entrada (Entrypoint)
 ├── data/                # Coloque seus PDFs aqui (Input)
-├── output/              # JSONs gerados (Backup/Raw Layer)
 ├── database/            # Configuração de conexão DB
 ├── schemas/             # Contratos de Dados (Pydantic Models)
 └── src/
     ├── extractor.py     # Orquestrador do Pipeline
     ├── llm/             # Cliente de IA
     ├── models/          # Tabelas do Banco (SQLAlchemy)
-    └── services/        # Regras de Negócio (Salvar no Banco)
+    └── services/        # Regras de Negócio (Salvar no Banco e S3)
 ```
 
 ---
@@ -73,6 +74,12 @@ Para ambientes de **Produção** que lidam com dados reais de terceiros (CPF, CN
     ```ini
     OPENAI_API_KEY=sk-...
     DATABASE_URL=postgresql://user:pass@host:5432/postgres
+    
+    # AWS (Para S3)
+    AWS_ACCESS_KEY_ID=...
+    AWS_SECRET_ACCESS_KEY=...
+    AWS_REGION=us-east-1
+    AWS_S3_BUCKET=nome-do-seu-bucket
     ```
 
 3.  **Instale as dependências:**

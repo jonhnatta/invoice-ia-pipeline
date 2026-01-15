@@ -6,6 +6,7 @@ from typing import List, Set
 from src.llm.llm_client import InvoiceExtractorLLM
 from database.database import SessionLocal, engine, Base
 from src.services.invoice_service import InvoiceService
+from src.services.s3_service import S3Service
 
 class Extractor:
 
@@ -21,6 +22,9 @@ class Extractor:
         
         # Inicializa Cliente LLM
         self.llm_client = InvoiceExtractorLLM()
+        
+        # Inicializa Storage (S3)
+        self.s3_service = S3Service()
         
         # Inicializa Banco de Dados
         try:
@@ -104,12 +108,9 @@ class Extractor:
                 # 2. Envia para IA
                 invoice_obj = self.llm_client.extract(images)
                 
-                # 3. Salva JSON
+                # 3. Salva JSON no S3
                 output_filename = f"{os.path.splitext(filename)[0]}.json"
-                output_path = os.path.join(output_dir, output_filename)
-                
-                with open(output_path, "w", encoding="utf-8") as f:
-                    f.write(invoice_obj.model_dump_json(indent=2))
+                self.s3_service.upload_json(invoice_obj.model_dump(), output_filename)
                 
                 # 4. Salva no Banco via Service (se disponível)
                 if self.invoice_service:
